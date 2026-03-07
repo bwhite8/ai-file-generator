@@ -1,0 +1,156 @@
+import OpenAI from "openai";
+import type { BusinessCaseJob } from "./db";
+
+const client = new OpenAI();
+
+export interface GenerateResult {
+  buffer: Buffer;
+  fileName: string;
+  fileSize: number;
+}
+
+const SYSTEM_PROMPT = `You are an expert business consultant and presentation designer. Your task is to generate a professional business case PowerPoint presentation using python-pptx.
+
+## Instructions
+
+1. pip install python-pptx and then run a single Python script that generates the full presentation.
+2. Save the output file to /mnt/data/business-case.pptx
+
+## Slide Sections (9 required)
+
+1. **Title Slide** - Company/project name, subtitle with one-line value proposition, date
+2. **Executive Summary** - 3-4 bullet points summarizing the entire business case
+3. **Problem Statement** - Clear articulation of the problem/opportunity with supporting context
+4. **Proposed Solution** - What the solution is, how it works, key differentiators
+5. **Market Opportunity** - TAM/SAM/SOM estimates, target segments, growth trends
+6. **Business Model** - Revenue streams, pricing strategy, unit economics
+7. **Implementation Roadmap** - Phased timeline with key milestones (3-4 phases)
+8. **Financial Projections** - 3-year revenue/cost/profit projections with key assumptions
+9. **Ask / Next Steps** - What you're requesting (funding, approval, resources) and immediate next steps
+
+## Design Requirements
+
+- Slide dimensions: 13.333 x 7.5 inches (widescreen 16:9)
+- Use a clean, modern professional design
+- Color palette: primary #1B2A4A (dark navy), accent #2D82B7 (blue), highlight #F4A261 (warm orange), text #FFFFFF on dark backgrounds, #1B2A4A on light backgrounds, light background #F5F5F5
+- Font: use Calibri throughout. Title text 28-36pt, body text 16-20pt, caption text 12-14pt
+- Include subtle geometric shapes or accent bars for visual interest
+- Consistent header/footer treatment across all slides
+- Use tables for financial data, not just bullet points
+- Add slide numbers
+
+## Completeness Contract
+
+Treat the task as incomplete until ALL 9 slide sections listed above are generated. Keep an internal checklist of required deliverables and verify each one is present before finishing.
+
+## Verification Loop
+
+Before finalizing, verify that:
+- The script creates all 9 required slides
+- The specified color palette is used consistently
+- The file is saved to /mnt/data/business-case.pptx
+- The script runs without errors
+
+## Tool Persistence Rule
+
+Do NOT stop early. Execute the complete python-pptx script in a single shell command. Use: pip install python-pptx && python script.py (write the script inline or via heredoc).`;
+
+function buildUserPrompt(job: BusinessCaseJob): string {
+  return `Generate a professional business case presentation for the following:
+
+${job.description}
+
+Create all 9 required slide sections with substantive, realistic content based on the description above. Fill in plausible market data, financial projections, and implementation details where specific numbers aren't provided. The presentation should be ready for executive review.`;
+}
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 60);
+}
+
+export async function generateBusinessCase(
+  job: BusinessCaseJob
+): Promise<GenerateResult> {
+  console.log(`[generate] job=${job.id} starting GPT-5.4 shell tool call`);
+
+  const response = await client.responses.create({
+    model: "gpt-5.4",
+    reasoning: { effort: "medium" },
+    text: { verbosity: "high" },
+    max_output_tokens: 32768,
+    tool_choice: "required",
+    instructions: SYSTEM_PROMPT,
+    tools: [
+      {
+        type: "shell" as const,
+        environment: {
+          type: "container_auto" as const,
+          network_policy: {
+            type: "allowlist" as const,
+            allowed_domains: ["pypi.org", "files.pythonhosted.org"],
+          },
+        },
+      },
+    ],
+    input: [
+      {
+        type: "message" as const,
+        role: "user" as const,
+        content: [{ type: "input_text" as const, text: buildUserPrompt(job) }],
+      },
+    ],
+  });
+
+  // Extract container ID from shell_call output items
+  let containerId: string | null = null;
+  for (const item of response.output) {
+    if (
+      item.type === "shell_call" &&
+      item.environment?.type === "container_reference"
+    ) {
+      containerId = item.environment.container_id;
+      break;
+    }
+  }
+
+  if (!containerId) {
+    throw new Error("No container ID found in GPT-5.4 response");
+  }
+
+  console.log(`[generate] job=${job.id} container=${containerId}, downloading PPTX`);
+
+  // List files in the container and find the .pptx
+  const files = await client.containers.files.list(containerId);
+  let pptxFile: { id: string; path: string } | undefined;
+  for await (const f of files) {
+    if (f.path?.endsWith(".pptx")) {
+      pptxFile = f;
+      break;
+    }
+  }
+
+  if (!pptxFile) {
+    throw new Error("No .pptx file found in container");
+  }
+
+  // Download the file content
+  const contentResponse = await client.containers.files.content.retrieve(
+    pptxFile.id,
+    { container_id: containerId }
+  );
+  const buffer = Buffer.from(await contentResponse.arrayBuffer());
+
+  const slug = slugify(job.description);
+  const fileName = `business-case-${slug}-${job.id}.pptx`;
+
+  console.log(`[generate] job=${job.id} PPTX downloaded (${buffer.length} bytes)`);
+
+  return {
+    buffer,
+    fileName,
+    fileSize: buffer.length,
+  };
+}
