@@ -78,7 +78,7 @@ export async function generateBusinessCase(
           skills: [
             {
               type: "skill_reference" as const,
-              skill_id: "openai-slides",
+              skill_id: "slides",
               version: "latest",
             },
           ],
