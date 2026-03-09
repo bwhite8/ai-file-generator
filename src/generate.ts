@@ -9,12 +9,12 @@ export interface GenerateResult {
   fileSize: number;
 }
 
-const SYSTEM_PROMPT = `You are an expert business consultant and presentation designer. Your task is to generate a professional business case PowerPoint presentation using python-pptx.
+const SYSTEM_PROMPT = `You are an expert business consultant and presentation designer. Use the slides skill to generate a professional business case PowerPoint presentation.
 
 ## Instructions
 
-1. pip install python-pptx and then run a single Python script that generates the full presentation.
-2. Save the output file to /mnt/data/business-case.pptx
+1. Use the slides skill to build the deck. Save the output to /mnt/data/business-case.pptx
+2. Run the skill's validation scripts (render, overflow check) before finalizing.
 
 ## Slide Sections (9 required)
 
@@ -30,30 +30,18 @@ const SYSTEM_PROMPT = `You are an expert business consultant and presentation de
 
 ## Design Requirements
 
-- Slide dimensions: 13.333 x 7.5 inches (widescreen 16:9)
-- Use a clean, modern professional design
+- Widescreen 16:9 layout
+- Clean, modern professional design
 - Color palette: primary #1B2A4A (dark navy), accent #2D82B7 (blue), highlight #F4A261 (warm orange), text #FFFFFF on dark backgrounds, #1B2A4A on light backgrounds, light background #F5F5F5
-- Font: use Calibri throughout. Title text 28-36pt, body text 16-20pt, caption text 12-14pt
+- Font: Calibri throughout. Title text 28-36pt, body text 16-20pt, caption text 12-14pt
 - Include subtle geometric shapes or accent bars for visual interest
 - Consistent header/footer treatment across all slides
-- Use tables for financial data, not just bullet points
+- Use native charts/tables for financial data, not just bullet points
 - Add slide numbers
 
 ## Completeness Contract
 
-Treat the task as incomplete until ALL 9 slide sections listed above are generated. Keep an internal checklist of required deliverables and verify each one is present before finishing.
-
-## Verification Loop
-
-Before finalizing, verify that:
-- The script creates all 9 required slides
-- The specified color palette is used consistently
-- The file is saved to /mnt/data/business-case.pptx
-- The script runs without errors
-
-## Tool Persistence Rule
-
-Do NOT stop early. Execute the complete python-pptx script in a single shell command. Use: pip install python-pptx && python script.py (write the script inline or via heredoc).`;
+Treat the task as incomplete until ALL 9 slide sections are generated. Verify each one is present before finishing.`;
 
 function buildUserPrompt(job: BusinessCaseJob): string {
   return `Generate a professional business case presentation for the following:
@@ -88,10 +76,13 @@ export async function generateBusinessCase(
         type: "shell" as const,
         environment: {
           type: "container_auto" as const,
-          network_policy: {
-            type: "allowlist" as const,
-            allowed_domains: ["pypi.org", "files.pythonhosted.org"],
-          },
+          skills: [
+            {
+              type: "skill_reference" as const,
+              skill_id: "openai-slides",
+              version: "latest",
+            },
+          ],
         },
       },
     ],
