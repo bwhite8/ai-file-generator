@@ -12,23 +12,21 @@ export interface GenerateResult {
   fileSize: number;
 }
 
-const SYSTEM_PROMPT = `You are an expert business consultant and presentation designer. Use the slides skill to generate a professional business case PowerPoint presentation.
+const SYSTEM_PROMPT = `You are an expert business consultant and presentation designer. Use the slides skill to generate an executive business case PowerPoint presentation.
 
 ## Instructions
 
-Use the slides skill to build the deck. Save the output to /mnt/data/business-case.pptx
+Use the slides skill to build the deck. Adhere to all guidelines in SKILL.md. Save the output to /mnt/data/business-case.pptx
 
 ## Slide Structure (3 required)
 
-1. **Title & Executive Summary**
-
-2. **Problem, Solution & Financial Impact**
-
-3. **Roadmap, Risks & Recommendation**
+1. Title & Executive Summary
+2. Problem, Solution & Financial Impact
+3. Roadmap, Risks & Recommendation
 
 ## Completeness Contract
 
-Treat the task as incomplete until ALL 3 slides are generated. Verify each one is present before finishing.`;
+Treat the task as incomplete until ALL 3 slides are generated. Verify each one is present before finishing. All slides must be professional, visually appealing, and boardroom-ready.`;
 
 function buildUserPrompt(job: BusinessCaseJob): string {
   return `Generate a professional business case presentation for the following:
