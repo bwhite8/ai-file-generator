@@ -16,17 +16,16 @@ const SYSTEM_PROMPT = `You are an expert business consultant and presentation de
 1. Use the slides skill to build the deck. Save the output to /mnt/data/business-case.pptx
 2. Run the skill's validation scripts (render, overflow check) before finalizing.
 
-## Slide Sections (9 required)
+## Slide Sections (8 required)
 
-1. **Title Slide** - Company/project name, subtitle with one-line value proposition, date
-2. **Executive Summary** - 3-4 bullet points summarizing the entire business case
-3. **Problem Statement** - Clear articulation of the problem/opportunity with supporting context
-4. **Proposed Solution** - What the solution is, how it works, key differentiators
-5. **Market Opportunity** - TAM/SAM/SOM estimates, target segments, growth trends
-6. **Business Model** - Revenue streams, pricing strategy, unit economics
-7. **Implementation Roadmap** - Phased timeline with key milestones (3-4 phases)
-8. **Financial Projections** - 3-year revenue/cost/profit projections with key assumptions
-9. **Ask / Next Steps** - What you're requesting (funding, approval, resources) and immediate next steps
+1. **Title Slide** - Initiative name, sponsor, and date
+2. **Executive Summary** - Framing the opportunity and recommendation
+3. **Problem / Opportunity Statement** - Clear articulation with supporting evidence
+4. **Proposed Solution** - High-level approach and key differentiators
+5. **Financial Analysis** - Costs, benefits, ROI, and payback period
+6. **Implementation Roadmap** - Phases, milestones, and dependencies
+7. **Risk Assessment** - Key risks with mitigation strategies and contingency plans
+8. **Success Metrics & Recommendation** - KPIs and a clear call to action
 
 ## Design Requirements
 
@@ -41,14 +40,14 @@ const SYSTEM_PROMPT = `You are an expert business consultant and presentation de
 
 ## Completeness Contract
 
-Treat the task as incomplete until ALL 9 slide sections are generated. Verify each one is present before finishing.`;
+Treat the task as incomplete until ALL 8 slide sections are generated. Verify each one is present before finishing.`;
 
 function buildUserPrompt(job: BusinessCaseJob): string {
   return `Generate a professional business case presentation for the following:
 
 ${job.description}
 
-Create all 9 required slide sections with substantive, realistic content based on the description above. Fill in plausible market data, financial projections, and implementation details where specific numbers aren't provided. The presentation should be ready for executive review.`;
+Create all 8 required slide sections with substantive, realistic content based on the description above. Do 2-3 brief web searches upfront to ground the deck in real data — market sizing, industry trends, competitive landscape, or technical details relevant to the topic. Then build the deck. The presentation should be ready for executive review.`;
 }
 
 function slugify(text: string): string {
@@ -84,6 +83,10 @@ export async function generateBusinessCase(
             },
           ],
         },
+      },
+      {
+        type: "web_search_preview" as const,
+        search_context_size: "low" as const,
       },
     ],
     input: [
