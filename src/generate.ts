@@ -16,29 +16,15 @@ const SYSTEM_PROMPT = `You are an expert business consultant and presentation de
 
 ## Instructions
 
-1. Use the slides skill to build the deck. Save the output to /mnt/data/business-case.pptx
-2. Run the skill's validation scripts (render, overflow check) before finalizing.
+Use the slides skill to build the deck. Save the output to /mnt/data/business-case.pptx
 
 ## Slide Structure (3 required)
 
-Each slide is dense and multi-panel. Use the full widescreen canvas — no wasted space.
+1. **Title & Executive Summary**
 
-1. **Title & Executive Summary** — Top half: initiative name, sponsor, and date in a bold title treatment. Bottom half: concise framing of the opportunity and recommendation (3-4 sentences max).
+2. **Problem, Solution & Financial Impact**
 
-2. **Problem, Solution & Financial Impact** — Multi-panel layout. Left column: the problem/opportunity with supporting evidence. Right column: proposed solution, high-level approach, and key differentiators. Bottom section: a compact financial table showing costs, benefits, ROI, and payback period. Use a native table or chart for the financial data.
-
-3. **Roadmap, Risks & Recommendation** — Top section: a phased implementation timeline visual with milestones. Middle section: a compact risk table (risk, likelihood, mitigation) with 3-4 key risks. Bottom section: success KPIs and a clear call to action.
-
-## Design Requirements
-
-- Widescreen 16:9 layout
-- Clean, modern professional design with dense, multi-panel layouts
-- Color palette: primary #1B2A4A (dark navy), accent #2D82B7 (blue), highlight #F4A261 (warm orange), text #FFFFFF on dark backgrounds, #1B2A4A on light backgrounds, light background #F5F5F5
-- Font: Calibri throughout. Title text 28-36pt, body text 16-20pt, caption text 12-14pt
-- Include subtle geometric shapes or accent bars for visual interest
-- Consistent header/footer treatment across all slides
-- Use native charts/tables for financial data, not just bullet points
-- Add slide numbers
+3. **Roadmap, Risks & Recommendation**
 
 ## Completeness Contract
 
@@ -49,7 +35,7 @@ function buildUserPrompt(job: BusinessCaseJob): string {
 
 ${job.description}
 
-Do one brief web search to ground the deck in real data, then create all 3 required slides. Each slide should be dense and multi-panel — use the full canvas. Work quickly and efficiently.`;
+Do one brief web search to ground the deck in real data, then create all 3 required slides.`;
 }
 
 function slugify(text: string): string {
@@ -67,7 +53,7 @@ export async function generateBusinessCase(
 
   const response = await client.responses.create({
     model: "gpt-5.4",
-    reasoning: { effort: "low" },
+    reasoning: { effort: "medium" },
     max_output_tokens: 32768,
     tool_choice: "required",
     instructions: SYSTEM_PROMPT,
