@@ -1,6 +1,14 @@
 import { createServer, IncomingMessage, ServerResponse } from "node:http";
+import { Agent, setGlobalDispatcher } from "undici";
 import { claimNextJob } from "./db";
 import { processJob } from "./worker";
+
+// Node 22's built-in fetch (undici) has a default bodyTimeout of 5 minutes.
+// OpenAI Responses API with shell tool can exceed that while the model
+// executes code in the container. Extend to 10 minutes.
+setGlobalDispatcher(
+  new Agent({ bodyTimeout: 10 * 60 * 1000, headersTimeout: 10 * 60 * 1000 }),
+);
 
 const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL_MS || "300000", 10);
 const PORT = parseInt(process.env.PORT || "3000", 10);

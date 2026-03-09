@@ -49,7 +49,7 @@ function buildUserPrompt(job: BusinessCaseJob): string {
 
 ${job.description}
 
-Create all 3 required slides with substantive, realistic content based on the description above. Do 2-3 brief web searches upfront to ground the deck in real data — market sizing, industry trends, competitive landscape, or technical details relevant to the topic. Then build the deck. Each slide should be dense and multi-panel — use the full canvas. The presentation should be ready for executive review.`;
+Do one brief web search to ground the deck in real data, then create all 3 required slides. Each slide should be dense and multi-panel — use the full canvas. Work quickly and efficiently.`;
 }
 
 function slugify(text: string): string {
@@ -67,9 +67,8 @@ export async function generateBusinessCase(
 
   const response = await client.responses.create({
     model: "gpt-5.4",
-    reasoning: { effort: "medium" },
-    text: { verbosity: "high" },
-    max_output_tokens: 32768,
+    reasoning: { effort: "low" },
+    max_output_tokens: 16384,
     tool_choice: "required",
     instructions: SYSTEM_PROMPT,
     tools: [
