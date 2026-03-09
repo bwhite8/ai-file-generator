@@ -68,7 +68,7 @@ export async function generateBusinessCase(
   const response = await client.responses.create({
     model: "gpt-5.4",
     reasoning: { effort: "low" },
-    max_output_tokens: 16384,
+    max_output_tokens: 32768,
     tool_choice: "required",
     instructions: SYSTEM_PROMPT,
     tools: [
