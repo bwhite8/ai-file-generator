@@ -3,7 +3,7 @@ import type { BusinessCaseJob } from "./db";
 
 const client = new OpenAI({
   maxRetries: 0,
-  timeout: 10 * 60 * 1000, // 10 minutes — shell tool generations are long-running
+  timeout: 15 * 60 * 1000, // 15 minutes — shell tool generations with image gen are long-running
 });
 
 export interface GenerateResult {
@@ -16,24 +16,38 @@ const SYSTEM_PROMPT = `You are an expert business consultant and presentation de
 
 ## Instructions
 
-Use the slides skill to build the deck. Adhere to all guidelines in SKILL.md. Save the output to /mnt/data/business-case.pptx
+Use the slides skill to build the deck. You MUST use PptxGenJS (not python-pptx) with the helpers from the pptxgenjs_helpers directory. Adhere to all guidelines in SKILL.md. Save the output to /mnt/data/business-case.pptx
 
-## Slide Structure (3 required)
+## Slide Structure (5 required)
 
 1. Title & Executive Summary
-2. Problem, Solution & Financial Impact
-3. Roadmap, Risks & Recommendation
+2. Problem Statement & Current Pain Points
+3. Proposed Solution & Operating Model
+4. Financial Impact & ROI Analysis
+5. Roadmap, Risks & Recommendation
+
+## Visuals
+
+Generate 1-2 images to use as hero visuals in the deck. Use them for title slides or as panel accents — never as full-slide backgrounds that would cause overlap warnings.
+
+## Layout Quality Rules
+
+- For decorative or background visuals, use slide.background or place the image FIRST and keep all other elements in non-overlapping regions (e.g. left panel text, right panel image).
+- Do NOT layer text or shapes on top of addImage elements — this triggers overlap warnings.
+- NEVER remove or disable warnIfSlideHasOverlaps or warnIfSlideElementsOutOfBounds. If overlaps are detected, you MUST rewrite the layout to eliminate them. Taking shortcuts like disabling the checker is not acceptable.
+- After generating all slides, run render_slides.py and create_montage.py to produce a visual preview, then run slides_test.py to verify no overflow.
+- If any severe overlap or out-of-bounds errors remain, fix them before saving the final file.
 
 ## Completeness Contract
 
-Treat the task as incomplete until ALL 3 slides are generated. Verify each one is present before finishing. All slides must be professional, visually appealing, and boardroom-ready.`;
+Treat the task as incomplete until ALL 5 slides are generated and pass overlap/bounds validation. Verify each slide is present before finishing. All slides must be professional, visually appealing, and boardroom-ready.`;
 
 function buildUserPrompt(job: BusinessCaseJob): string {
   return `Generate a professional business case presentation for the following:
 
 ${job.description}
 
-Do one brief web search to ground the deck in real data, then create all 3 required slides.`;
+Do one brief web search to ground the deck in real data, then create all 5 required slides.`;
 }
 
 function slugify(text: string): string {
@@ -51,8 +65,8 @@ export async function generateBusinessCase(
 
   const response = await client.responses.create({
     model: "gpt-5.4",
-    reasoning: { effort: "medium" },
-    max_output_tokens: 32768,
+    reasoning: { effort: "high" },
+    max_output_tokens: 65536,
     tool_choice: "required",
     instructions: SYSTEM_PROMPT,
     tools: [
@@ -72,6 +86,9 @@ export async function generateBusinessCase(
       {
         type: "web_search_preview" as const,
         search_context_size: "low" as const,
+      },
+      {
+        type: "image_generation" as const,
       },
     ],
     input: [
