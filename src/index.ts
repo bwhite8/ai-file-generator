@@ -10,7 +10,6 @@ setGlobalDispatcher(
   new Agent({ bodyTimeout: 10 * 60 * 1000, headersTimeout: 10 * 60 * 1000 }),
 );
 
-const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL_MS || "300000", 10);
 const PORT = parseInt(process.env.PORT || "3000", 10);
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "";
 
@@ -74,10 +73,5 @@ const server = createServer(async (req: IncomingMessage, res: ServerResponse) =>
 });
 
 server.listen(PORT, () => {
-  console.log(`[worker] http server on port ${PORT}`);
-  console.log(`[worker] fallback polling every ${POLL_INTERVAL}ms`);
+  console.log(`[worker] http server on port ${PORT} (webhook-only, no polling)`);
 });
-
-// Fallback polling (now at 5min default instead of 10s)
-setInterval(tick, POLL_INTERVAL);
-tick();
