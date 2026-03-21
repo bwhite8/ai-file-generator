@@ -4,8 +4,8 @@ import { claimNextJob } from "./db";
 import { processJob } from "./worker";
 
 // Node 22's built-in fetch (undici) has a default bodyTimeout of 5 minutes.
-// OpenAI Responses API with shell tool can exceed that while the model
-// executes code in the container. Extend to 10 minutes.
+// Anthropic Messages API with code execution tool can exceed that while the
+// model executes code in the container. Extend to 10 minutes.
 setGlobalDispatcher(
   new Agent({ bodyTimeout: 10 * 60 * 1000, headersTimeout: 10 * 60 * 1000 }),
 );
