@@ -81,10 +81,11 @@ export async function generateBusinessCase(
     ],
   };
 
+  // name omitted — the API auto-injects names for built-in tool types
   const tools = [
-    { type: "code_execution_20250825" as const, name: "code_execution" as const },
-    { type: "web_search_20260209" as const, name: "web_search" as const },
-  ];
+    { type: "code_execution_20250825" },
+    { type: "web_search_20260209" },
+  ] as Anthropic.Beta.BetaToolUnion[];
 
   let response = await client.beta.messages.create({
     model: "claude-sonnet-4-6-20250514",
