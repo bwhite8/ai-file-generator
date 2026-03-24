@@ -86,7 +86,7 @@ export async function generateBusinessCase(
   ] as any;
 
   let response = await client.beta.messages.create({
-    model: "claude-sonnet-4-6-20250514",
+    model: "claude-sonnet-4-6",
     max_tokens: 16384,
     stream: false,
     betas: BETAS,
@@ -102,7 +102,7 @@ export async function generateBusinessCase(
     attempts++;
     console.log(`[generate] job=${job.id} pause_turn, continuing (attempt ${attempts})`);
     response = await client.beta.messages.create({
-      model: "claude-sonnet-4-6-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 16384,
       stream: false,
       betas: BETAS,
