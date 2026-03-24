@@ -84,7 +84,7 @@ export async function generateBusinessCase(
   const tools = [
     { type: "code_execution_20250825", name: "code_execution" },
     { type: "web_search_20260209", name: "web_search" },
-  ] as Anthropic.Beta.BetaToolUnion[];
+  ] as any;
 
   let response = await client.beta.messages.create({
     model: "claude-sonnet-4-6-20250514",
