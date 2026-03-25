@@ -2,7 +2,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { AnthropicBeta } from "@anthropic-ai/sdk/resources/beta/beta";
 import type { BusinessCaseJob } from "./db";
 
-const client = new Anthropic();
+const client = new Anthropic({ maxRetries: 0 });
+console.log(`[generate] Anthropic SDK initialized (maxRetries=0)`);
 
 export interface GenerateResult {
   buffer: Buffer;
@@ -85,6 +86,26 @@ export async function generateBusinessCase(
     { type: "web_search_20260209", name: "web_search" },
   ] as any;
 
+  const systemMessage = [
+    {
+      type: "text" as const,
+      text: SYSTEM_PROMPT,
+      cache_control: { type: "ephemeral" as const },
+    },
+  ];
+
+  const userMessage = [
+    {
+      type: "text" as const,
+      text: buildUserPrompt(job),
+      cache_control: { type: "ephemeral" as const },
+    },
+  ];
+
+  console.log(`[generate] job=${job.id} sending initial API call`);
+  const startTime = Date.now();
+  let apiCallCount = 1;
+
   let response = await client.beta.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 16384,
@@ -92,15 +113,21 @@ export async function generateBusinessCase(
     betas: BETAS,
     container,
     tools,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: "user" as const, content: buildUserPrompt(job) }],
+    system: systemMessage,
+    messages: [{ role: "user" as const, content: userMessage }],
   });
+
+  console.log(`[generate] job=${job.id} call #${apiCallCount} returned | stop_reason=${response.stop_reason} | usage: input=${response.usage.input_tokens} output=${response.usage.output_tokens} | elapsed=${Date.now() - startTime}ms`);
+
   let containerId = response.container?.id;
+  console.log(`[generate] job=${job.id} containerId=${containerId}`);
   let attempts = 0;
 
   while (response.stop_reason === "pause_turn" && attempts < 10) {
     attempts++;
-    console.log(`[generate] job=${job.id} pause_turn, continuing (attempt ${attempts})`);
+    apiCallCount++;
+    const loopStart = Date.now();
+    console.log(`[generate] job=${job.id} pause_turn loop attempt=${attempts} | sending call #${apiCallCount} | content blocks=${response.content.length}`);
     response = await client.beta.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 16384,
@@ -108,15 +135,18 @@ export async function generateBusinessCase(
       betas: BETAS,
       container: containerId ? { id: containerId } : container,
       tools,
-      system: SYSTEM_PROMPT,
+      system: systemMessage,
       messages: [
-        { role: "user" as const, content: buildUserPrompt(job) },
+        { role: "user" as const, content: userMessage },
         { role: "assistant" as const, content: response.content },
         { role: "user" as const, content: "Continue." },
       ],
     });
     containerId = response.container?.id ?? containerId;
+    console.log(`[generate] job=${job.id} call #${apiCallCount} returned | stop_reason=${response.stop_reason} | usage: input=${response.usage.input_tokens} output=${response.usage.output_tokens} | elapsed=${Date.now() - loopStart}ms`);
   }
+
+  console.log(`[generate] job=${job.id} loop finished | total API calls=${apiCallCount} | total elapsed=${Date.now() - startTime}ms | final stop_reason=${response.stop_reason}`);
 
   // Extract file ID from code execution results
   const fileId = extractFileId(response.content);

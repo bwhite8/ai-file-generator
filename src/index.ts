@@ -15,19 +15,31 @@ const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "";
 
 let processing = false;
 
+let tickCount = 0;
+
 async function tick() {
-  if (processing) return;
+  tickCount++;
+  const thisTickId = tickCount;
+  console.log(`[tick] #${thisTickId} called | processing=${processing}`);
+  if (processing) {
+    console.log(`[tick] #${thisTickId} skipped (already processing)`);
+    return;
+  }
   processing = true;
 
   try {
     const job = await claimNextJob();
     if (job) {
+      console.log(`[tick] #${thisTickId} claimed job=${job.id} status=${job.status}`);
       await processJob(job);
+    } else {
+      console.log(`[tick] #${thisTickId} no pending jobs found`);
     }
   } catch (err) {
-    console.error("[poll] error:", err);
+    console.error(`[tick] #${thisTickId} error:`, err);
   } finally {
     processing = false;
+    console.log(`[tick] #${thisTickId} done | processing=false`);
   }
 }
 
