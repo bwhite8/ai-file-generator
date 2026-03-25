@@ -52,11 +52,11 @@ const BETAS: AnthropicBeta[] = [
 
 function extractFileId(content: Anthropic.Beta.BetaContentBlock[]): string | null {
   for (const block of content) {
-    if (block.type === "code_execution_tool_result") {
-      const resultContent = block.content;
-      if (resultContent.type === "code_execution_result") {
+    if ((block as any).type === "bash_code_execution_tool_result") {
+      const resultContent = (block as any).content;
+      if (resultContent?.type === "bash_code_execution_result" && Array.isArray(resultContent.content)) {
         for (const item of resultContent.content) {
-          if (item.type === "code_execution_output" && item.file_id?.endsWith(".pptx")) {
+          if (item.type === "bash_code_execution_output" && item.filename?.endsWith(".pptx")) {
             return item.file_id;
           }
         }
