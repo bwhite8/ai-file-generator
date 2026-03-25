@@ -148,6 +148,22 @@ export async function generateBusinessCase(
 
   console.log(`[generate] job=${job.id} loop finished | total API calls=${apiCallCount} | total elapsed=${Date.now() - startTime}ms | final stop_reason=${response.stop_reason}`);
 
+  // Log response structure for debugging
+  console.log(`[generate] job=${job.id} response content blocks (${response.content.length}):`);
+  for (let i = 0; i < response.content.length; i++) {
+    const block = response.content[i] as any;
+    const summary: Record<string, unknown> = { type: block.type };
+    if (block.content?.type) summary.contentType = block.content.type;
+    if (block.content?.content && Array.isArray(block.content.content)) {
+      summary.innerItems = block.content.content.map((item: any) => ({
+        type: item.type,
+        filename: item.filename,
+        file_id: item.file_id,
+      }));
+    }
+    console.log(`[generate]   block[${i}]: ${JSON.stringify(summary)}`);
+  }
+
   // Extract file ID from code execution results
   const fileId = extractFileId(response.content);
 
